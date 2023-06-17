@@ -9,6 +9,7 @@ public class StockEntity {
     @Id
     @GeneratedValue
     private Long id;
+    //will use symbol as identification for underlying and derivatives
     private String symbol;
     private String underlying;
     private Integer token;
