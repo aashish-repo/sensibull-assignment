@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor@AllArgsConstructor
 public class ApiResponseDto {
 
-    private String message;
-    private List<PricesResponse> pricesResponseList;
+    private String success;
+    private List<PricesResponse> payload;
 
 }
