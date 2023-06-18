@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class TokenPrice  {
-    private String token;
+    private Integer token;
     private Double price;
 }

@@ -2,10 +2,15 @@ package com.sensibull.assignment.scheduler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sensibull.assignment.client.ClientWebSocketStomp;
+import com.sensibull.assignment.client.DerivativeWebSocketHandler;
+import com.sensibull.assignment.client.UnderlyingWebSocketHandler;
 import com.sensibull.assignment.constants.APIConstant;
+import com.sensibull.assignment.entity.DerivativeEntity;
 import com.sensibull.assignment.entity.UnderlyingEntity;
 import com.sensibull.assignment.models.ApiResponseDto;
+import com.sensibull.assignment.models.ClientSubscribeMessage;
 import com.sensibull.assignment.models.PricesResponse;
+import com.sensibull.assignment.repository.DerivativePriceRepository;
 import com.sensibull.assignment.repository.UnderlyingPriceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -29,31 +34,49 @@ public class Scheduler {
     private ClientWebSocketStomp clientWebSocketStomp;
 
     @Autowired
-    private UnderlyingPriceRepository stockPriceRepository;
+    private UnderlyingPriceRepository underlyingPriceRepository;
+    
+    @Autowired
+    private DerivativePriceRepository derivativePriceRepository;
 
     private List<UnderlyingEntity> stockEntityList;
     private List<Integer> underlyingTokens;
+
+    private List<DerivativeEntity> derivativeEntityList;
+    private List<Integer> derivativeTokens;
 
     @Scheduled(fixedDelay = 60000 * 15)
     public void pollUnderlyingInformation() {
         ApiResponseDto apiResponseDto = makeHttpCallToStockServer(APIConstant.UNDERLYING);
 
-        if(!"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
+        if(apiResponseDto==null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
             //log error that we didn't get the underlying api response
             return;
         }
 
         convertUnderDtoToEntity(apiResponseDto.getPayload());
 
-        stockPriceRepository.saveAllAndFlush(stockEntityList);
+        underlyingPriceRepository.saveAllAndFlush(stockEntityList);
 
-/*        ClientSubscribeMessage model = ClientSubscribeMessage.builder().msg_command("subscribe").data_type("quote").tokens(Arrays.asList(2)).build();
-        clientWebSocketStomp.makeCallToWebSocketServer();*/
+        ClientSubscribeMessage model = ClientSubscribeMessage.builder().msg_command("subscribe").data_type("quote").tokens(underlyingTokens).build();
+        UnderlyingWebSocketHandler.setClientMessage(model);
+        clientWebSocketStomp.makeCallToWebSocketServer(APIConstant.UNDERLYING_CHECK);
     }
 
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
     public void pollDerivativePrices() {
-        makeHttpCallToStockServer(APIConstant.UNDERLYING);
+        for(Integer underlyingToken: underlyingTokens) {
+            ApiResponseDto apiResponseDto = makeHttpCallToStockServer(APIConstant.DERIVATIVE + underlyingToken);
+            if(apiResponseDto==null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
+                //log error that we didn't get the underlying api response
+                return;
+            }
+            convertDerivativeDtoToEntity(apiResponseDto.getPayload(), underlyingToken);
+            derivativePriceRepository.saveAllAndFlush(derivativeEntityList);
+            ClientSubscribeMessage model = ClientSubscribeMessage.builder().msg_command("subscribe").data_type("quote").tokens(derivativeTokens).build();
+            DerivativeWebSocketHandler.setClientMessage(model);
+            clientWebSocketStomp.makeCallToWebSocketServer(APIConstant.DERIVATIVE_CHECK);
+        }
     }
 
     private ApiResponseDto makeHttpCallToStockServer(String url) {
@@ -72,6 +95,9 @@ public class Scheduler {
 
             if (response.statusCode() == 200) {
                 if (response.body() == null || response.body().isBlank()) {
+                    return null;
+                }
+                if(response.body().contains("false")){
                     return null;
                 }
                 ObjectMapper mapper = new ObjectMapper();
@@ -102,6 +128,24 @@ public class Scheduler {
             stockEntity.setSymbol(pricesResponse.getSymbol());
             underlyingTokens.add(pricesResponse.getToken());
             stockEntityList.add(stockEntity);
+        }
+
+    }
+
+    private void convertDerivativeDtoToEntity(List<PricesResponse> responseList,Integer underlyingToken){
+        derivativeTokens = new ArrayList<>();
+        derivativeEntityList = new ArrayList<>();
+        for(PricesResponse pricesResponse : responseList){
+            DerivativeEntity stockEntity = new DerivativeEntity();
+            stockEntity.setExpiry(pricesResponse.getExpiry());
+            stockEntity.setStrike(pricesResponse.getStrike());
+            stockEntity.setSymbol(pricesResponse.getSymbol());
+            stockEntity.setDerivative_token(pricesResponse.getToken());
+            stockEntity.setInstrument_type(pricesResponse.getInstrument_type());
+            stockEntity.setSymbol(pricesResponse.getSymbol());
+            stockEntity.setUnderlying_token(underlyingToken);
+            derivativeTokens.add(pricesResponse.getToken());
+            derivativeEntityList.add(stockEntity);
         }
 
     }

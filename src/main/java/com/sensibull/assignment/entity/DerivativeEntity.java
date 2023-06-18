@@ -19,9 +19,7 @@ public class DerivativeEntity {
     private String symbol;
     private String underlying;
     private Integer derivative_token;
-    @ManyToOne
-    @JoinColumn(name="token")
-    private UnderlyingEntity underlyingEntity;
+    private Integer underlying_token;
     private String instrument_type;
     private String expiry;
     private Integer strike;
