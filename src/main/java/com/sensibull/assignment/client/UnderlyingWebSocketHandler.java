@@ -2,11 +2,10 @@ package com.sensibull.assignment.client;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sensibull.assignment.models.ClientSubscribeMessage;
+import com.sensibull.assignment.models.ClientMessage;
 import com.sensibull.assignment.models.ServerMessageResponse;
 import com.sensibull.assignment.repository.UnderlyingPriceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 
@@ -14,7 +13,8 @@ import org.springframework.web.socket.*;
 @Component
 public class UnderlyingWebSocketHandler implements WebSocketHandler {
 
-    private static ClientSubscribeMessage clientMessage;
+    private static ClientMessage clientMessage;
+    private static ClientMessage clientMessageUnsubscribe;
 
     @Autowired
     private UnderlyingPriceRepository underlyingPriceRepository;
@@ -22,6 +22,10 @@ public class UnderlyingWebSocketHandler implements WebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         System.out.println("Connected To Websocket");
+        if(clientMessageUnsubscribe!=null){
+            clientMessageUnsubscribe.setMsg_command("unsubscribe");
+            session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageUnsubscribe)));
+        }
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessage)));
     }
 
@@ -51,7 +55,10 @@ public class UnderlyingWebSocketHandler implements WebSocketHandler {
         return false;
     }
 
-    public static void setClientMessage(ClientSubscribeMessage clientSubscribeMessage) {
-        clientMessage = clientSubscribeMessage;
+    public static void setClientMessage(ClientMessage clientMessage) {
+        if(UnderlyingWebSocketHandler.clientMessage!=null){
+            UnderlyingWebSocketHandler.clientMessageUnsubscribe = UnderlyingWebSocketHandler.clientMessage;
+        }
+        UnderlyingWebSocketHandler.clientMessage = clientMessage;
     }
 }

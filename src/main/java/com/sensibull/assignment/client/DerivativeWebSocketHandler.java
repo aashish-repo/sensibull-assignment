@@ -2,7 +2,7 @@ package com.sensibull.assignment.client;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sensibull.assignment.models.ClientSubscribeMessage;
+import com.sensibull.assignment.models.ClientMessage;
 import com.sensibull.assignment.models.ServerMessageResponse;
 import com.sensibull.assignment.repository.DerivativePriceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +12,18 @@ import org.springframework.web.socket.*;
 @Component
 public class DerivativeWebSocketHandler implements WebSocketHandler {
 
-    private static ClientSubscribeMessage clientMessage;
+    private static ClientMessage clientMessage;
+    private static ClientMessage clientMessageUnsubscribe;
 
     @Autowired
     private DerivativePriceRepository derivativePriceRepository;
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         System.out.println("Connected To Websocket");
+        if(clientMessageUnsubscribe!=null){
+            clientMessageUnsubscribe.setMsg_command("unsubscribe");
+            session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageUnsubscribe)));
+        }
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessage)));
     }
 
@@ -47,7 +52,10 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
     public boolean supportsPartialMessages() {
         return false;
     }
-    public static void setClientMessage(ClientSubscribeMessage clientSubscribeMessage) {
-        clientMessage = clientSubscribeMessage;
+    public static void setClientMessage(ClientMessage clientMessage) {
+        if(DerivativeWebSocketHandler.clientMessage!=null){
+            DerivativeWebSocketHandler.clientMessageUnsubscribe = DerivativeWebSocketHandler.clientMessage;
+        }
+        DerivativeWebSocketHandler.clientMessage = clientMessage;
     }
 }

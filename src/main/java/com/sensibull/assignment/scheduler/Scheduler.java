@@ -8,7 +8,7 @@ import com.sensibull.assignment.constants.APIConstant;
 import com.sensibull.assignment.entity.DerivativeEntity;
 import com.sensibull.assignment.entity.UnderlyingEntity;
 import com.sensibull.assignment.models.ApiResponseDto;
-import com.sensibull.assignment.models.ClientSubscribeMessage;
+import com.sensibull.assignment.models.ClientMessage;
 import com.sensibull.assignment.models.PricesResponse;
 import com.sensibull.assignment.repository.DerivativePriceRepository;
 import com.sensibull.assignment.repository.UnderlyingPriceRepository;
@@ -58,14 +58,19 @@ public class Scheduler {
 
         underlyingPriceRepository.saveAllAndFlush(stockEntityList);
 
-        ClientSubscribeMessage model = ClientSubscribeMessage.builder().msg_command("subscribe").data_type("quote").tokens(underlyingTokens).build();
+        ClientMessage model = ClientMessage.builder().msg_command("subscribe").data_type("quote").tokens(underlyingTokens).build();
         UnderlyingWebSocketHandler.setClientMessage(model);
         clientWebSocketStomp.makeCallToWebSocketServer(APIConstant.UNDERLYING_CHECK);
     }
 
-    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    @Scheduled(fixedDelay = 60000)
     public void pollDerivativePrices() {
         for(Integer underlyingToken: underlyingTokens) {
+            try {
+                Thread.sleep(60000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             ApiResponseDto apiResponseDto = makeHttpCallToStockServer(APIConstant.DERIVATIVE + underlyingToken);
             if(apiResponseDto==null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
                 //log error that we didn't get the underlying api response
@@ -73,7 +78,7 @@ public class Scheduler {
             }
             convertDerivativeDtoToEntity(apiResponseDto.getPayload(), underlyingToken);
             derivativePriceRepository.saveAllAndFlush(derivativeEntityList);
-            ClientSubscribeMessage model = ClientSubscribeMessage.builder().msg_command("subscribe").data_type("quote").tokens(derivativeTokens).build();
+            ClientMessage model = ClientMessage.builder().msg_command("subscribe").data_type("quote").tokens(derivativeTokens).build();
             DerivativeWebSocketHandler.setClientMessage(model);
             clientWebSocketStomp.makeCallToWebSocketServer(APIConstant.DERIVATIVE_CHECK);
         }

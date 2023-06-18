@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Builder
 @ToString
-public class ClientSubscribeMessage {
+public class ClientMessage {
     private String msg_command;
     private String data_type;
     private List<Integer> tokens;
