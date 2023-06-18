@@ -3,13 +3,22 @@ package com.sensibull.assignment.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-public class StockEntity {
+@Table(name = "underlying_stock_price")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UnderlyingEntity {
     @Id
     @GeneratedValue
     private Long id;
-    //will use symbol as identification for underlying and derivatives
     private String symbol;
     private String underlying;
     private Integer token;

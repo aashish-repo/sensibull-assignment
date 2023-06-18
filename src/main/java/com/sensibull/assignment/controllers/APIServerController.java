@@ -1,6 +1,8 @@
 package com.sensibull.assignment.controllers;
 
 import com.sensibull.assignment.models.ApiResponseDto;
+import com.sensibull.assignment.service.APIServerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/")
 public class APIServerController {
 
+    @Autowired
+    private APIServerService apiServerService;
+
     @GetMapping("underlying-prices")
     public ResponseEntity<ApiResponseDto> getUnderlyingPrices(){
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(apiServerService.fetchUnderlyingData(),HttpStatus.OK);
     }
 
     @GetMapping("derivative-prices/{underlying-symbol}")
