@@ -24,8 +24,7 @@ public class APIServerController {
 
     @GetMapping("derivative-prices/{underlying-symbol}")
     public ResponseEntity<ApiResponseDto> getDerivativePrices(@PathVariable("underlying-symbol") String underlyingSymbol){
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(apiServerService.fetchDerivativeData(underlyingSymbol),HttpStatus.OK);
     }
 
 
