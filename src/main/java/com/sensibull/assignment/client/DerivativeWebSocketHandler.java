@@ -9,11 +9,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Component
 public class DerivativeWebSocketHandler implements WebSocketHandler {
 
     private static ClientMessage clientSubscribeMessage;
-    private static ClientMessage clientMessageUnsubscribe;
+
+    private static List<Integer> unsubscribeTokens = new ArrayList<>();
+
+    public static Boolean isUnderlyingChange = false;
 
     @Autowired
     private DerivativePriceRepository derivativePriceRepository;
@@ -23,9 +29,13 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
         /**
          * unsubscribe the previously subscribed messages and subscribe for new one
          */
-        if(clientMessageUnsubscribe!=null){
+        if(isUnderlyingChange){
+            ClientMessage clientMessageUnsubscribe = new ClientMessage();
+            clientMessageUnsubscribe.setTokens(unsubscribeTokens);
+            clientMessageUnsubscribe.setData_type("quote");
             clientMessageUnsubscribe.setMsg_command("unsubscribe");
             session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageUnsubscribe)));
+            isUnderlyingChange=false;
         }
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientSubscribeMessage)));
     }
@@ -56,9 +66,8 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
         return false;
     }
     public static void setClientMessage(ClientMessage clientMessage) {
-        if(DerivativeWebSocketHandler.clientSubscribeMessage!=null){
-            DerivativeWebSocketHandler.clientMessageUnsubscribe = DerivativeWebSocketHandler.clientSubscribeMessage;
-        }
+        unsubscribeTokens.addAll(clientMessage.getTokens());
         DerivativeWebSocketHandler.clientSubscribeMessage = clientMessage;
     }
+
 }

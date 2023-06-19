@@ -35,7 +35,7 @@ public class Scheduler {
 
     @Autowired
     private UnderlyingPriceRepository underlyingPriceRepository;
-    
+
     @Autowired
     private DerivativePriceRepository derivativePriceRepository;
 
@@ -45,11 +45,13 @@ public class Scheduler {
     private List<DerivativeEntity> derivativeEntityList;
     private List<Integer> derivativeTokens;
 
+    private int count =0;
+
     @Scheduled(fixedDelay = 60000 * 15)
     public void pollUnderlyingInformation() {
         ApiResponseDto apiResponseDto = makeHttpCallToStockServer(APIConstant.UNDERLYING);
 
-        if(apiResponseDto==null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
+        if (apiResponseDto == null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())) {
             //log error that we didn't get the underlying api response
             return;
         }
@@ -60,19 +62,18 @@ public class Scheduler {
 
         ClientMessage model = ClientMessage.builder().msg_command("subscribe").data_type("quote").tokens(underlyingTokens).build();
         UnderlyingWebSocketHandler.setClientMessage(model);
+        if(count>0){
+            DerivativeWebSocketHandler.isUnderlyingChange = true;
+        }
+        count++;
         clientWebSocketStomp.makeCallToWebSocketServer(APIConstant.UNDERLYING_CHECK);
     }
 
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
     public void pollDerivativePrices() {
-        for(Integer underlyingToken: underlyingTokens) {
-            try {
-                Thread.sleep(60000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        for (Integer underlyingToken : underlyingTokens) {
             ApiResponseDto apiResponseDto = makeHttpCallToStockServer(APIConstant.DERIVATIVE + underlyingToken);
-            if(apiResponseDto==null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())){
+            if (apiResponseDto == null || !"true".equalsIgnoreCase(apiResponseDto.getSuccess())) {
                 //log error that we didn't get the underlying api response
                 return;
             }
@@ -86,6 +87,7 @@ public class Scheduler {
 
     /**
      * Http call to stock server to fetch the underlying and derivative information
+     *
      * @param url
      * @return
      */
@@ -107,7 +109,7 @@ public class Scheduler {
                 if (response.body() == null || response.body().isBlank()) {
                     return null;
                 }
-                if(response.body().contains("false")){
+                if (response.body().contains("false")) {
                     return null;
                 }
                 ObjectMapper mapper = new ObjectMapper();
@@ -124,10 +126,10 @@ public class Scheduler {
         return apiResponseDto;
     }
 
-    private void convertUnderDtoToEntity(List<PricesResponse> responseList){
+    private void convertUnderDtoToEntity(List<PricesResponse> responseList) {
         underlyingTokens = new ArrayList<>();
         stockEntityList = new ArrayList<>();
-        for(PricesResponse pricesResponse : responseList){
+        for (PricesResponse pricesResponse : responseList) {
             UnderlyingEntity stockEntity = new UnderlyingEntity();
             stockEntity.setExpiry(pricesResponse.getExpiry());
             stockEntity.setStrike(pricesResponse.getStrike());
@@ -141,12 +143,13 @@ public class Scheduler {
 
     }
 
-    private void convertDerivativeDtoToEntity(List<PricesResponse> responseList,Integer underlyingToken){
+    private void convertDerivativeDtoToEntity(List<PricesResponse> responseList, Integer underlyingToken) {
         derivativeTokens = new ArrayList<>();
         derivativeEntityList = new ArrayList<>();
-        for(PricesResponse pricesResponse : responseList){
+        for (PricesResponse pricesResponse : responseList) {
             DerivativeEntity stockEntity = new DerivativeEntity();
             stockEntity.setExpiry(pricesResponse.getExpiry());
+            stockEntity.setUnderlying(pricesResponse.getUnderlying());
             stockEntity.setStrike(pricesResponse.getStrike());
             stockEntity.setSymbol(pricesResponse.getSymbol());
             stockEntity.setDerivative_token(pricesResponse.getToken());
