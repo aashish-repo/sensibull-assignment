@@ -28,6 +28,7 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
         System.out.println("Connected To Websocket");
         /**
          * unsubscribe the previously subscribed messages and subscribe for new one
+         * So once the new underlying flag gets true we can unsubscribe the older ones
          */
         if(isUnderlyingChange){
             ClientMessage clientMessageUnsubscribe = new ClientMessage();
