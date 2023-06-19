@@ -13,7 +13,7 @@ import org.springframework.web.socket.*;
 @Component
 public class UnderlyingWebSocketHandler implements WebSocketHandler {
 
-    private static ClientMessage clientMessage;
+    private static ClientMessage clientMessageSubscribe;
     private static ClientMessage clientMessageUnsubscribe;
 
     @Autowired
@@ -22,11 +22,14 @@ public class UnderlyingWebSocketHandler implements WebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         System.out.println("Connected To Websocket");
+        /**
+         * unsubscribe the previously subscribed messages and subscribe for new ones
+         */
         if(clientMessageUnsubscribe!=null){
             clientMessageUnsubscribe.setMsg_command("unsubscribe");
             session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageUnsubscribe)));
         }
-        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessage)));
+        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageSubscribe)));
     }
 
     @Override
@@ -56,9 +59,9 @@ public class UnderlyingWebSocketHandler implements WebSocketHandler {
     }
 
     public static void setClientMessage(ClientMessage clientMessage) {
-        if(UnderlyingWebSocketHandler.clientMessage!=null){
-            UnderlyingWebSocketHandler.clientMessageUnsubscribe = UnderlyingWebSocketHandler.clientMessage;
+        if(UnderlyingWebSocketHandler.clientMessageSubscribe!=null){
+            UnderlyingWebSocketHandler.clientMessageUnsubscribe = UnderlyingWebSocketHandler.clientMessageSubscribe;
         }
-        UnderlyingWebSocketHandler.clientMessage = clientMessage;
+        UnderlyingWebSocketHandler.clientMessageSubscribe = clientMessage;
     }
 }

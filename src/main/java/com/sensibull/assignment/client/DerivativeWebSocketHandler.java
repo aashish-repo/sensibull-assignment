@@ -12,7 +12,7 @@ import org.springframework.web.socket.*;
 @Component
 public class DerivativeWebSocketHandler implements WebSocketHandler {
 
-    private static ClientMessage clientMessage;
+    private static ClientMessage clientSubscribeMessage;
     private static ClientMessage clientMessageUnsubscribe;
 
     @Autowired
@@ -20,11 +20,14 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         System.out.println("Connected To Websocket");
+        /**
+         * unsubscribe the previously subscribed messages and subscribe for new one
+         */
         if(clientMessageUnsubscribe!=null){
             clientMessageUnsubscribe.setMsg_command("unsubscribe");
             session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessageUnsubscribe)));
         }
-        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientMessage)));
+        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(clientSubscribeMessage)));
     }
 
     @Override
@@ -53,9 +56,9 @@ public class DerivativeWebSocketHandler implements WebSocketHandler {
         return false;
     }
     public static void setClientMessage(ClientMessage clientMessage) {
-        if(DerivativeWebSocketHandler.clientMessage!=null){
-            DerivativeWebSocketHandler.clientMessageUnsubscribe = DerivativeWebSocketHandler.clientMessage;
+        if(DerivativeWebSocketHandler.clientSubscribeMessage!=null){
+            DerivativeWebSocketHandler.clientMessageUnsubscribe = DerivativeWebSocketHandler.clientSubscribeMessage;
         }
-        DerivativeWebSocketHandler.clientMessage = clientMessage;
+        DerivativeWebSocketHandler.clientSubscribeMessage = clientMessage;
     }
 }

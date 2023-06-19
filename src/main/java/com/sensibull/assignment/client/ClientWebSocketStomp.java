@@ -28,6 +28,10 @@ public class ClientWebSocketStomp {
         container.setDefaultMaxTextMessageBufferSize(20 * 1024 * 1024);
         WebSocketClient client = new StandardWebSocketClient(container);
         try {
+            /**
+             * Here we can create the factory for different type of handler and then after input condition we can pass
+             * that object in the websocket handler
+             */
             client.execute(APIConstant.DERIVATIVE_CHECK.equals(handler) ?derivativeWebSocketHandler :underlyingWebSocketHandler, WEB_SOCKET).get();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

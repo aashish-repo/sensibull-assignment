@@ -84,6 +84,11 @@ public class Scheduler {
         }
     }
 
+    /**
+     * Http call to stock server to fetch the underlying and derivative information
+     * @param url
+     * @return
+     */
     private ApiResponseDto makeHttpCallToStockServer(String url) {
         HttpRequest httpRequest = null;
         ApiResponseDto apiResponseDto = null;
@@ -110,7 +115,6 @@ public class Scheduler {
             } else {
                 //we can log the error, or we can implement the retry functionality on the basis of status code
             }
-
 
         } catch (IOException e) {
             throw new RuntimeException(e);
